@@ -1,29 +1,44 @@
-const http = require('http')
-const chalk = require('chalk')
-const path = require('path')
+var createError = require('http-errors');
+var express = require('express');
+var path = require('path');
+var cookieParser = require('cookie-parser');
+var logger = require('morgan');
 
+var indexRouter = require('./routes/index');
 
-const conf = require('./config')
-const _route = require('./util/_route')
+var app = express();
 
-/* 01
-const server = http.createServer((req, res) => {
-  res.statusCode = 200
-  res.setHeader('Content-Type', 'text/html')
-  res.write('<html>')
-  res.write('<body>')
-  res.write('hello http~~')
-  res.write('</body>') 
-  res.end('</html>')
-})
-*/
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));  
+app.engine("html", require("ejs").renderFile);
+app.set('view engine', 'html');
 
-const server = http.createServer((req, res) => {
-  const filePath = path.join(conf.root, req.url)
-  _route(req, res, filePath)
-})
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'webapp', 'dist')));
 
-server.listen(conf.port, conf.hostname, () => {
-  const addr = `http://${conf.hostname}:${conf.port}`
-  console.log(`server running at port ${chalk.green(addr)}`)
-})
+app.use('/', indexRouter);
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  next(createError(404));
+});
+
+// error handler
+app.use(function(err, req, res, next) {
+  // set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+  // render the error page
+  res.status(err.status || 500);
+  if (err.status === 404) {
+    res.render('error404');
+  } else {
+    res.render('error');
+  }
+});
+
+module.exports = app;
